@@ -39,16 +39,22 @@ public class UserControllerTest {
     }
     @Test
     public void whenQuerySuccess() throws Exception {
+        //使用get方法请求数据
         String result = mockMvc.perform(get("/user")
+                //使用param定义请求参数
                 .param("username","zcf")
                 .param("age","12")
                 .param("ageTo","60")
                 /*.param("size","15")
                 .param("page","3")
                 .param("sort","age,desc")*/
+                //定义请求的参数为json格式，编码为UTF-8
                 .contentType(MediaType.APPLICATION_JSON_UTF8))
+                //期望状态码为200
                 .andExpect(status().isOk())
+                //期望返回的json数据长度为3
                 .andExpect(jsonPath("$.length()").value(3))
+         //将请求返回的数据转换成字符串形式
         .andReturn().getResponse().getContentAsString();
         System.out.println("查询所有返回结果"+result);
     }

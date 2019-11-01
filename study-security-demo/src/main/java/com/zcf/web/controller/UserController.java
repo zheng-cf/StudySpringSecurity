@@ -3,6 +3,7 @@ package com.zcf.web.controller;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.zcf.dto.User;
 import com.zcf.dto.UserQueryCondition;
+import com.zcf.exception.UserNotExistException;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.springframework.data.domain.Pageable;
@@ -43,12 +44,17 @@ public class UserController {
         return user;
     }
 
-    //@JsonView(User.UserSimpleView.class)
+    @JsonView(User.UserSimpleView.class)
     @PostMapping
-    public User create(@Valid @RequestBody User user, BindingResult erros) {
+    /**
+     * 使用@Valid注解标注需要验证的字段，和BindingResult类获取错误信息
+     */
+    public User create(@Valid @RequestBody User user) {
+        /*//当验证字段发生错误时
         if (erros.hasErrors()) {
+            //这里是拿到所有的错误遍历错误，打印错误信息。在开发中就可以通过抛出异常将错误返回给前端
             erros.getAllErrors().stream().forEach(error -> System.out.println(error.getDefaultMessage()));
-        }
+        }*/
         System.out.println(user.getUsername());
         System.out.println(user.getPassword());
         System.out.println(user.getId());
@@ -59,6 +65,7 @@ public class UserController {
 
     @GetMapping
     @JsonView(User.UserSimpleView.class)
+    //使用UserQueryCondition接受前端传来的数据，并且使用@PageableDefault注解设置默认分页
     public List<User> query(UserQueryCondition userQueryCondition, @PageableDefault(page = 1, size = 10, sort = "username.asc") Pageable pageable) {
         System.out.println(ReflectionToStringBuilder.toString(userQueryCondition, ToStringStyle.MULTI_LINE_STYLE));
         //System.out.println(userQueryCondition);
@@ -76,9 +83,10 @@ public class UserController {
     @GetMapping("/{id:\\d+}")
     @JsonView(User.UserDetailView.class)
     public User getInfo(@PathVariable(value = "id") String id) {
-        User user = new User();
+        throw new UserNotExistException(id);
+        /*User user = new User();
         user.setUsername("zcf");
-        return user;
+        return user;*/
     }
 }
 
