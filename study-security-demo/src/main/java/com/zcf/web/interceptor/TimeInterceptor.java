@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.transform.Source;
 import java.util.Date;
-@Component
+//@Component
 public class TimeInterceptor implements HandlerInterceptor {
     /**
      * 访问controller里面方法之前被调用
