@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.zcf.dto.User;
 import com.zcf.dto.UserQueryCondition;
 import com.zcf.exception.UserNotExistException;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.springframework.data.domain.Pageable;
@@ -65,6 +67,7 @@ public class UserController {
 
     @GetMapping
     @JsonView(User.UserSimpleView.class)
+    @ApiOperation(value = "用户查询服务")
     //使用UserQueryCondition接受前端传来的数据，并且使用@PageableDefault注解设置默认分页
     public List<User> query(UserQueryCondition userQueryCondition, @PageableDefault(page = 1, size = 10, sort = "username.asc") Pageable pageable) {
         System.out.println(ReflectionToStringBuilder.toString(userQueryCondition, ToStringStyle.MULTI_LINE_STYLE));
@@ -82,7 +85,7 @@ public class UserController {
 
     @GetMapping("/{id:\\d+}")
     @JsonView(User.UserDetailView.class)
-    public User getInfo(@PathVariable(value = "id") String id) {
+    public User getInfo(@ApiParam(value = "用户id") @PathVariable(value = "id") String id) {
         //throw new UserNotExistException(id);
         //throw new RuntimeException();
         System.out.println("进入getInfo服务");

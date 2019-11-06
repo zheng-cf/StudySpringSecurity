@@ -1,5 +1,10 @@
-
 spring:
+  jpa:
+    database: mysql
+    generate-ddl: false
+    show-sql: true
+    hibernate:
+      ddl-auto: none
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3307/study-security-demo?useUnicode=yes&characterEncoding=UTF-8&useSSL=false
@@ -9,6 +14,6 @@ spring:
     store-type: none
 server:
   port: 8081
-security:
-  basic:
-    enabled: false
+#security:
+#  basic:
+#    enabled: false
