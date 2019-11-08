@@ -12,8 +12,18 @@ spring:
     password: root
   session:
     store-type: none
+  redis:
+    host: 127.0.0.1
+    port: 6379
 server:
   port: 8081
 #security:
 #  basic:
 #    enabled: false
+
+
+zcf:
+  security:
+    browser:
+      loginType: JSON
+#      loginPage : /demo-signIn.html
