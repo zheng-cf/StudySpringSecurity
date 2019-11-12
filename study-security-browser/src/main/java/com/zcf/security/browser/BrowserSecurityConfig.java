@@ -5,18 +5,27 @@ import com.zcf.security.core.validate.code.ValidateCodeFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.authentication.configurers.userdetails.UserDetailsServiceConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
+
+import javax.sql.DataSource;
 
 @Configuration
 public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private SecurityProperties securityProperties;
+
+    @Autowired
+    private DataSource dataSource;
 
     /**
      * 导入自己写的AuthenticationSuccessHandler的实现类
@@ -30,7 +39,28 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private AuthenticationFailureHandler zcfAuthenticationFailureHandler;
 
+    /**
+     *
+     *
+     */
+    @Autowired
+    private UserDetailsService myUserDetailService;
 
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository(){
+        JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl();
+        /**
+         * 配置数据源
+         */
+        tokenRepository.setDataSource(dataSource);
+        /**
+         * 在JdbcTokenRepositoryImpl中有数据库脚本
+         * 我们使用脚本来创建表
+         * 但是在第二次重启服务的时候需要注释掉
+         */
+        //tokenRepository.setCreateTableOnStartup(true);
+        return tokenRepository;
+    }
     @Bean
     public PasswordEncoder passwordEncoder(){
         /**
@@ -43,7 +73,11 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
     }
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+
         ValidateCodeFilter filter = new ValidateCodeFilter();
+        filter.setSecurityProperties(securityProperties);
+        filter.afterPropertiesSet();
+
         filter.setAuthenticationFailureHandler(zcfAuthenticationFailureHandler);
         http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin()                                      //基于form表单的登录验证
@@ -51,6 +85,11 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
                 .loginProcessingUrl("/authentication/form")   //表单的action路径
                 .successHandler(zcfAuthenticationSuccessHandler)//配置自己写的登录成功处理器
                 .failureHandler(zcfAuthenticationFailureHandler)
+                .and()
+                .rememberMe()//配置记住我
+                .tokenRepository(persistentTokenRepository())//设置tokenRepository
+                .tokenValiditySeconds(securityProperties.getBrowser().getRememberMeSeconds())//设置过期时间
+                .userDetailsService(myUserDetailService)//设置登录的服务
                 .and()
                 .authorizeRequests()        //关于请求的一些配置
                 /**

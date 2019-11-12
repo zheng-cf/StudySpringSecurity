@@ -26,4 +26,8 @@ zcf:
   security:
     browser:
       loginType: JSON
+    code:
+      image:
+        length: 5
+        url: /user/*
 #      loginPage : /demo-signIn.html
