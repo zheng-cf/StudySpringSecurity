@@ -10,5 +10,5 @@ import org.springframework.web.context.request.ServletWebRequest;
  * 在createImageCode方法中实现自己的验证码生成逻辑
  */
 public interface ValidateCodeGenerator {
-    ValidateCode createImageCode(ServletWebRequest request);
+    ValidateCode generate(ServletWebRequest request);
 }

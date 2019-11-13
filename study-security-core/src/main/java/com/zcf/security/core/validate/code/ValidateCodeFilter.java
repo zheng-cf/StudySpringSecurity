@@ -1,16 +1,22 @@
 package com.zcf.security.core.validate.code;
 
+import com.zcf.security.core.properties.SecurityConstants;
 import com.zcf.security.core.properties.SecurityProperties;
+import com.zcf.security.core.utils.ApplicationUtils;
+import com.zcf.security.core.validate.code.image.ImageCode;
+import com.zcf.security.core.validate.code.impl.AbstractValidateCodeProcessor;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.social.connect.web.HttpSessionSessionStrategy;
 import org.springframework.social.connect.web.SessionStrategy;
+import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.PathMatcher;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.ServletRequestUtils;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -19,13 +25,16 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * 继承OncePerRequestFilter类，保证我们自己的过滤器只会被调用一次
  * 实现这个InitializingBean接口，其他参数组装完毕之后去初始化url
  */
+@Component
 public class ValidateCodeFilter extends OncePerRequestFilter implements InitializingBean {
 
     private static AuthenticationFailureHandler authenticationFailureHandler;
@@ -34,7 +43,20 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
 
     private SecurityProperties securityProperties = new SecurityProperties();
 
+    /**
+     * 系统中的校验码处理器
+     */
+//    @Autowired
+//    private ValidateCodeProcessorHolder validateCodeProcessorHolder;
+
+    /**
+     * 存放所有需要校验验证码的url
+     */
+    private Map<String, ValidateCodeType> urlMap = new HashMap<>();
+
     private Set<String> urls = new HashSet<>();
+
+    String s = ValidateCodeProcessor.SESSION_KEY_PREFIX;
     /**
      * 工具类，因为请求url中有,/user,/user/*，所以不能使用使用equals去完成路径的匹配
      */
@@ -43,87 +65,57 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
     @Override
     public void afterPropertiesSet() throws ServletException {
         super.afterPropertiesSet();
-        String[] configUrls = StringUtils.splitByWholeSeparatorPreserveAllTokens(securityProperties.getCode().getImage().getUrl(),",");
-        for (String configUrl : configUrls) {
-            urls.add(configUrl);
+        urlMap.put(SecurityConstants.DEFAULT_LOGIN_PROCESSING_URL_FORM,ValidateCodeType.IMAGE);
+        addUrlToMap(securityProperties.getCode().getImage().getUrl(),ValidateCodeType.IMAGE);
+
+        urlMap.put(SecurityConstants.DEFAULT_PARAMETER_NAME_MOBILE,ValidateCodeType.SMS);
+        addUrlToMap(securityProperties.getCode().getImage().getUrl(),ValidateCodeType.SMS);
+    }
+
+    private void addUrlToMap(String urlString, ValidateCodeType type) {
+        if(StringUtils.isNotBlank(urlString)){
+            StringUtils.splitByWholeSeparatorPreserveAllTokens(urlString,",");
+            for (String url : urls) {
+                urlMap.put(url,type);
+            }
         }
-        urls.add("/authentication/form");
+
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        /**
-         * 循环遍历urls，只要前端发起的请求url有可以跟urls中的请求匹配上的就进行验证
-         */
-        boolean action = false;
-        for (String url : urls) {
-            if(pathMatcher.match(url,request.getRequestURI())){
-                action=true;
-            }
-        }
-        /**
-         * 这里要进行判断一下，保证逻辑的严谨。
-         * 请求的地址必须是"/authentication/form"，而且要是post请求
-         * 否则直接放行
-         */
-        if(action){
+        ValidateCodeType type = getValidateCodeType(request);
+        if(type != null){
+            logger.info("校验请求("+request.getRequestURI()+")中的验证码，验证码类型" + type);
             try {
-                /**
-                 * 使用validate方法验证请求中验证码的信息
-                 * 这里因为后边需要使用到ServletWebRequest
-                 * 所以对我们的HttpServletRequest进行包装一下
-                 */
-                validate(new ServletWebRequest(request));
-
+                ValidateCodeProcessorHolder validateCodeProcessorHolder = ApplicationUtils.getBean(ValidateCodeProcessorHolder.class);
+                validateCodeProcessorHolder.findValidateCodeProcessor(type).validate(new ServletWebRequest(request,response));
+                logger.info("验证码校验通过");
             }catch (ValidateCodeException e){
-                /**
-                 * 使用前边写的登录失败处理器处理异常
-                 */
-                authenticationFailureHandler.onAuthenticationFailure(request,response,e);
+                authenticationFailureHandler.onAuthenticationFailure(request, response, e);
                 return;
             }
 
         }
-
         filterChain.doFilter(request,response);
     }
 
-    /**
-     * 从请求中拿到验证码，完成验证。
-     * @param request
-     * @throws ServletRequestBindingException
-     */
-    private void validate(ServletWebRequest request) throws ServletRequestBindingException {
-        /**
-         * 从session中拿到放进去的ImageCode
-         */
-        ImageCode codeInSession = (ImageCode) sessionStrategy.getAttribute(request,ValidateCodeController.SESSION_KEY);
+    private ValidateCodeType getValidateCodeType(HttpServletRequest request) {
+        ValidateCodeType result = null;
+        if(!StringUtils.endsWithIgnoreCase(request.getMethod(),"get")){
+            //遍历集合
+            Set<String> urls = urlMap.keySet();
+            for (String url : urls) {
+                if(pathMatcher.match(url,request.getRequestURI())){
+                    result = urlMap.get(url);
+                }
+            }
 
-        /**
-         * 从Form请求中拿到imageCode的值，
-         * 这里imageCode是我们在<input type="text" name="imageCode">中name的值
-         */
-        String codeInRequest = ServletRequestUtils.getStringParameter(request.getRequest(),"imageCode");
-
-        if(StringUtils.isBlank(codeInRequest)){
-            throw new ValidateCodeException("验证码的值不能为空");
         }
-
-        if(codeInSession == null){
-            throw new ValidateCodeException("验证码不存在");
-        }
-
-        if(codeInSession.isExpried()){
-            sessionStrategy.removeAttribute(request,ValidateCodeController.SESSION_KEY);
-            throw new ValidateCodeException("验证码已过期");
-        }
-        if(!StringUtils.equals(codeInSession.getCode(),codeInRequest)){
-            throw new ValidateCodeException("验证码不匹配");
-        }
-
-        sessionStrategy.removeAttribute(request,ValidateCodeController.SESSION_KEY);
-
+        return result;
     }
+
+
     public AuthenticationFailureHandler getAuthenticationFailureHandler() {
         return authenticationFailureHandler;
     }

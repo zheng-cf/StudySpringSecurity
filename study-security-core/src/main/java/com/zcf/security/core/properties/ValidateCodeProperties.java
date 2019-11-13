@@ -1,7 +1,5 @@
 package com.zcf.security.core.properties;
 
-import com.zcf.security.core.validate.code.ImageCode;
-
 /**
  * 图形验证码的配置
  */

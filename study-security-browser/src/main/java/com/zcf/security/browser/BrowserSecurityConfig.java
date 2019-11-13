@@ -97,7 +97,7 @@ public class BrowserSecurityConfig extends WebSecurityConfigurerAdapter {
                  * 那么就会导致，请求重定向次数过多错误
                  */
                 .antMatchers("/authentication/require",securityProperties.getBrowser().getLoginPage(),
-                        "/code/image").permitAll() //访问这个路径不需要身份验证
+                        "/code/*").permitAll() //访问这个路径不需要身份验证
                 .anyRequest()               //所有的请求
                 .authenticated()            //身份验证
                 .and()

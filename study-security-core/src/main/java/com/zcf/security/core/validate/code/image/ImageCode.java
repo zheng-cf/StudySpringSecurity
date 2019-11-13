@@ -1,9 +1,11 @@
-package com.zcf.security.core.validate.code;
+package com.zcf.security.core.validate.code.image;
+
+import com.zcf.security.core.validate.code.ValidateCode;
 
 import java.awt.image.BufferedImage;
 import java.time.LocalDateTime;
 
-public class ImageCode extends ValidateCode{
+public class ImageCode extends ValidateCode {
 
     private BufferedImage image;
 
