@@ -8,7 +8,11 @@ package com.zcf.security.core.properties;
  *
  */
 public interface SecurityConstants {
-	
+	/**
+	 * 验证码处理器名称的后缀
+	 */
+	String VALIDATE_CODE_PROCESSOR_SUFFIX = "ValidateCodeProcessor";
+
 	/**
 	 * 默认的处理验证码的url前缀
 	 */
@@ -49,5 +53,6 @@ public interface SecurityConstants {
 	 * session失效默认的跳转地址
 	 */
 	public static final String DEFAULT_SESSION_INVALID_URL = "/session/invalid";
+
 
 }

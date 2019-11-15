@@ -3,8 +3,6 @@ package com.zcf.security.core.validate.code;
 import com.zcf.security.core.properties.SecurityConstants;
 import com.zcf.security.core.properties.SecurityProperties;
 import com.zcf.security.core.utils.ApplicationUtils;
-import com.zcf.security.core.validate.code.image.ImageCode;
-import com.zcf.security.core.validate.code.impl.AbstractValidateCodeProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +11,6 @@ import org.springframework.social.connect.web.HttpSessionSessionStrategy;
 import org.springframework.social.connect.web.SessionStrategy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
-import org.springframework.util.PathMatcher;
-import org.springframework.web.bind.ServletRequestBindingException;
-import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,7 +20,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,9 +47,8 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
      */
     private Map<String, ValidateCodeType> urlMap = new HashMap<>();
 
-    private Set<String> urls = new HashSet<>();
+    //private Set<String> urls = new HashSet<>();
 
-    String s = ValidateCodeProcessor.SESSION_KEY_PREFIX;
     /**
      * 工具类，因为请求url中有,/user,/user/*，所以不能使用使用equals去完成路径的匹配
      */
@@ -69,12 +61,12 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
         addUrlToMap(securityProperties.getCode().getImage().getUrl(),ValidateCodeType.IMAGE);
 
         urlMap.put(SecurityConstants.DEFAULT_PARAMETER_NAME_MOBILE,ValidateCodeType.SMS);
-        addUrlToMap(securityProperties.getCode().getImage().getUrl(),ValidateCodeType.SMS);
+        addUrlToMap(securityProperties.getCode().getSms().getUrl(),ValidateCodeType.SMS);
     }
 
     private void addUrlToMap(String urlString, ValidateCodeType type) {
         if(StringUtils.isNotBlank(urlString)){
-            StringUtils.splitByWholeSeparatorPreserveAllTokens(urlString,",");
+            String[] urls = StringUtils.splitByWholeSeparatorPreserveAllTokens(urlString, ",");
             for (String url : urls) {
                 urlMap.put(url,type);
             }
@@ -132,11 +124,5 @@ public class ValidateCodeFilter extends OncePerRequestFilter implements Initiali
         this.securityProperties = securityProperties;
     }
 
-    public Set<String> getUrls() {
-        return urls;
-    }
 
-    public void setUrls(Set<String> urls) {
-        this.urls = urls;
-    }
 }

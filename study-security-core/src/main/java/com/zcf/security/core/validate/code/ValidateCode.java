@@ -1,9 +1,15 @@
 package com.zcf.security.core.validate.code;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 import java.awt.image.BufferedImage;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class ValidateCode {
+@Data
+@AllArgsConstructor
+public class ValidateCode implements Serializable {
 
     /**
      * 验证码随机数
@@ -20,38 +26,12 @@ public class ValidateCode {
      * @param code
      * @param expireIn
      */
-    public ValidateCode( String code, int expireIn) {
-        this.code = code;
-        this.expireTime = LocalDateTime.now().plusSeconds(expireIn);
+    public ValidateCode(String code, int expireIn) {
+        // 调用2个标准的构造方法
+        this(code, LocalDateTime.now().plusSeconds(expireIn));
     }
 
-    public ValidateCode( String code, LocalDateTime expireTime) {
-        this.code = code;
-        this.expireTime = expireTime;
-    }
-
-    /**
-     * 判断是否过期，过期时间expireTime如果在当前时间之后就没有过期
-     * 否则就过期
-     * @return
-     */
-    public boolean isExpried(){
+    public boolean isExpried() {
         return LocalDateTime.now().isAfter(expireTime);
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public LocalDateTime getExpireTime() {
-        return expireTime;
-    }
-
-    public void setExpireTime(LocalDateTime expireTime) {
-        this.expireTime = expireTime;
     }
 }

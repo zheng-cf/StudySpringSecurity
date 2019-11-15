@@ -1,8 +1,11 @@
 package com.zcf.security.core.properties;
 
+import lombok.Data;
+
 /**
  * 图形验证码的配置
  */
+@Data
 public class ValidateCodeProperties {
     /**
      * 类ImageCodeProperties用来定义验证码的属性，长宽高，验证码位数，过期时间等
@@ -15,19 +18,5 @@ public class ValidateCodeProperties {
      */
     private SmsCodeProperties sms = new SmsCodeProperties();
 
-    public ImageCodeProperties getImage() {
-        return image;
-    }
 
-    public void setImage(ImageCodeProperties image) {
-        this.image = image;
-    }
-
-    public SmsCodeProperties getSms() {
-        return sms;
-    }
-
-    public void setSms(SmsCodeProperties sms) {
-        this.sms = sms;
-    }
 }

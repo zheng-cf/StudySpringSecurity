@@ -13,16 +13,15 @@ import java.util.Map;
 
 public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> implements ValidateCodeProcessor {
     /**
-     * spring提供的操作session的工具类
-     */
-    private SessionStrategy sessionStrategy = new HttpSessionSessionStrategy();
-    /**
      * 手机代码中所有的ValidateCodeGenerator验证码生成器接口的实现类
      * 这里是利用了spring框架的功能，使用Autowired，spring会将所有ValidateCodeGenerator接口
      * 的实现放入到map中，以bean的名称为key
      */
     @Autowired
     private Map<String , ValidateCodeGenerator> validateCodeGenerators;
+
+    @Autowired
+    private ValidateCodeRepository validateCodeRepository;
 
     /**
      * 生成校验码
@@ -31,6 +30,7 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
      */
     @Override
     public void create(ServletWebRequest request) throws Exception {
+        //生成验证码
         C validateCode = generate(request);
         //保存验证码
         save(request,validateCode);
@@ -52,12 +52,11 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
      * @param validateCode
      */
     private void save(ServletWebRequest request, C validateCode) {
-        sessionStrategy.setAttribute(request,getSessionKey(request),validateCode);
+        //取出验证码的内容和过期时间，避免了放置图片到redis而报错
+        ValidateCode code = new ValidateCode(validateCode.getCode(),validateCode.getExpireTime());
+        validateCodeRepository.save(request,code,getValidateCodeType());
     }
 
-    private String getSessionKey(ServletWebRequest request) {
-        return SESSION_KEY_PREFIX + getValidateCodeType(request).toString().toUpperCase();
-    }
 
     /**
      * 生成校验码
@@ -69,7 +68,7 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
      * @return
      */
     private C generate(ServletWebRequest request) {
-        String type = getValidateCodeType(request).toString().toLowerCase();
+        String type = getValidateCodeType().toString().toLowerCase();
         ValidateCodeGenerator validateCodeGenerator = validateCodeGenerators.get(type+"ValidateCodeGenerator");
         return (C) validateCodeGenerator.generate(request);
     }
@@ -78,23 +77,22 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
 
     /**
      * 根据请求的后半段，判断请求的是短信验证码还是图片验证码
-     * @param request
+     *
      * @return
      */
 
-    private ValidateCodeType getValidateCodeType(ServletWebRequest request) {
+    private ValidateCodeType getValidateCodeType() {
+        //拿到类在spring容器中name
         String simpleName = getClass().getSimpleName();
+        //对这个名字切割
         String type = StringUtils.substringBefore(simpleName, "CodeProcessor");
         return ValidateCodeType.valueOf(type.toUpperCase());
     }
 
     @Override
     public void validate(ServletWebRequest request) {
-        ValidateCodeType processorType = getValidateCodeType(request);
-        String sessionKey = getSessionKey(request);
-
-        C codeInSession = (C) sessionStrategy.getAttribute(request,sessionKey);
-
+        ValidateCodeType processorType = getValidateCodeType();
+        C codeInSession = (C) validateCodeRepository.get(processorType,request);
         String codeInRequest;
         try {
             codeInRequest = ServletRequestUtils.getStringParameter(request.getRequest(),processorType.getParamNameOnValidate());
@@ -111,7 +109,7 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
         }
 
         if (codeInSession.isExpried()) {
-            sessionStrategy.removeAttribute(request, sessionKey);
+            validateCodeRepository.remove(request, processorType);
             throw new ValidateCodeException(processorType + "验证码已过期");
         }
 
@@ -119,7 +117,7 @@ public abstract class AbstractValidateCodeProcessor<C extends ValidateCode> impl
             throw new ValidateCodeException(processorType + "验证码不匹配");
         }
 
-        sessionStrategy.removeAttribute(request, sessionKey);
+        validateCodeRepository.remove(request, processorType);
 
     }
 

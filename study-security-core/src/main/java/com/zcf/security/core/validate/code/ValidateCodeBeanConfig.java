@@ -26,7 +26,7 @@ public class ValidateCodeBeanConfig {
          * 创建ValidateCodeGenerator的实现类ImageCodeGenerator
          */
         ImageCodeGenerator codeGenerator = new ImageCodeGenerator();
-        //codeGenerator.setSecurityProperties(securityProperties);
+        codeGenerator.setSecurityProperties(securityProperties);
         return codeGenerator;
     }
     @Bean

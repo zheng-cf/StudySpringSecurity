@@ -1,10 +1,10 @@
 package com.zcf.security.browser.support;
 
 public class SimpleResponse {
+    private Object content;
     public SimpleResponse(Object content){
         this.content = content;
     }
-    private Object content;
 
     public Object getContent() {
         return content;
